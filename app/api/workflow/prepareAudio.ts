@@ -1,12 +1,11 @@
-import {PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
+import {ObjectCannedACL, PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
+import {WorkflowContext} from "@upstash/qstash/workflow";
 
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 
 
 // Array of available voice IDs
 // https://elevenlabs.io/docs/voices/default-voices
 const ELEVENLABS_VOICE_IDS = [
-    'XB0fDUnXU5powFXDhCwa',
     'cgSgspJ2msm6clMCkdW9',
     'FGY2WhTYpPnrIDTdsKH5',
     'TX3LPaxmHKxFdv7VOQHJ',
@@ -20,21 +19,42 @@ function getRandomVoiceId() {
     return ELEVENLABS_VOICE_IDS[randomIndex];
 }
 
-// Configure the S3 client
+
+const s3Region = process.env.AWS_REGION || 'default-region';  // Replace with your default region if needed
+const s3AccessKeyId = process.env.AWS_ACCESS_KEY_ID;
+const s3SecretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+
+if (!s3AccessKeyId || !s3SecretAccessKey) {
+    throw new Error("AWS credentials are not defined");
+}
+
 const s3Client = new S3Client({
-    region: process.env.AWS_REGION,
+    region: s3Region,
     credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    },
+        accessKeyId: s3AccessKeyId,
+        secretAccessKey: s3SecretAccessKey,
+    }
 });
 
 const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
 const S3_BUCKET_URL = process.env.S3_BUCKET_URL; // e.g., "https://your-bucket-name.s3.amazonaws.com"
 
-export async function getVoiceFile(context, text: string) {
+export async function getVoiceFile(context: WorkflowContext, text: string) {
     const selectedVoiceId = getRandomVoiceId();
     console.log(`Selected voice ID: ${selectedVoiceId}`);
+
+    const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
+
+    if (!ELEVENLABS_API_KEY) {
+        throw new Error("ELEVENLABS API Key is not defined");
+    }
+
+    const headers = {
+        'Accept': 'audio/mpeg',
+        'xi-api-key': ELEVENLABS_API_KEY,
+        'Content-Type': 'application/json',
+    };
+
     return {summaryAudioFile: await context.call(
         "transcribe", // Step name
         `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`, // Endpoint URL
@@ -47,11 +67,7 @@ export async function getVoiceFile(context, text: string) {
                 similarity_boost: 0.5
             }
         },
-        {
-            'Accept': 'audio/mpeg',
-            'xi-api-key': ELEVENLABS_API_KEY,
-            'Content-Type': 'application/json',
-        }
+        headers
     ),
         voiceId: selectedVoiceId
     };
@@ -74,12 +90,14 @@ export async function upload(audio: any, fileName: string) {
     const s3Key = `audio/${fileName}`;
 
     try {
+        const acl: ObjectCannedACL = 'public-read';
+
         const uploadParams = {
             Bucket: S3_BUCKET_NAME,
             Key: s3Key,
             Body: buffer,
             ContentType: 'audio/mpeg',
-            ACL: 'public-read', // Make the object publicly readable
+            ACL: acl, // Make the object publicly readable
         };
 
         const command = new PutObjectCommand(uploadParams);

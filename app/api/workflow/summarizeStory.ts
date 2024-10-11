@@ -6,7 +6,7 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY // Make sure to set this environment variable
 });
 
-async function summarizeContent(content: string, url:string): Promise<string> {
+async function summarizeContent(content: string): Promise<string> {
     try {
         /*
         const response1 = await openai.chat.completions.create({
@@ -53,7 +53,7 @@ async function summarizeContent(content: string, url:string): Promise<string> {
 export async function summarizeStory(story: Story): Promise<Story> {
     if (story.content) {
         try {
-            const summary = await summarizeContent(story.content, story.url);
+            const summary = await summarizeContent(story.content);
             if (summary !== "fail" && story.content.length > 100) {
                 story.summary = summary;
             }
