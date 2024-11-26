@@ -1,6 +1,5 @@
 import {ObjectCannedACL, PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
-import {WorkflowContext} from "@upstash/qstash/workflow";
-
+import {WorkflowContext} from "@upstash/workflow";
 
 
 // Array of available voice IDs
@@ -40,8 +39,12 @@ const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
 const S3_BUCKET_URL = process.env.S3_BUCKET_URL; // e.g., "https://your-bucket-name.s3.amazonaws.com"
 
 export async function getVoiceFile(context: WorkflowContext, text: string) {
-    const selectedVoiceId = getRandomVoiceId();
-    console.log(`Selected voice ID: ${selectedVoiceId}`);
+
+    const selectedVoiceId = await context.run("select voice", async () => {
+        const voiceId = getRandomVoiceId();
+        console.log(`Selected voice ID: ${voiceId}`);
+        return voiceId;
+    });
 
     const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 
@@ -55,20 +58,24 @@ export async function getVoiceFile(context: WorkflowContext, text: string) {
         'Content-Type': 'application/json',
     };
 
-    return {summaryAudioFile: await context.call(
+    const resp = await context.call(
         "transcribe", // Step name
-        `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`, // Endpoint URL
-        "POST", // HTTP method
-        { // Request body
-            text: text,
-            model_id: 'eleven_multilingual_v2',
-            voice_settings: {
-                stability: 0.5,
-                similarity_boost: 0.5
-            }
-        },
-        headers
-    ),
+        {
+            url: `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`, // Endpoint URL
+            method: "POST", // HTTP method
+            body: { // Request body
+                text: text,
+                model_id: 'eleven_multilingual_v2',
+                voice_settings: {
+                    stability: 0.5,
+                    similarity_boost: 0.5
+                }
+            },
+            headers: headers
+        }
+    );
+    return {
+        summaryAudioFile: resp.body,
         voiceId: selectedVoiceId
     };
 }

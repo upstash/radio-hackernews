@@ -1,11 +1,11 @@
-import { serve } from "@upstash/qstash/nextjs"
+import {serve} from "@upstash/workflow/nextjs"
 import { saveStories } from "@/app/api/workflow/saveStories";
 import { loadStories } from "@/app/api/workflow/loadStories";
 import { summarizeStory } from "@/app/api/workflow/summarizeStory";
 import { parseStory } from "@/app/api/workflow/parseStory";
 import {getVoiceFile, upload} from "@/app/api/workflow/prepareAudio";
 
-export const POST = serve(
+export const { POST } = serve(
     async (context) => {
 
         let stories = await context.run("load-stories", async () => {

@@ -38,8 +38,8 @@ export async function loadStories(): Promise<Story[]> {
                 };
             })
         );
-        // Sort stories by score in descending order and return top 10
-        let topStories = stories.sort((a, b) => b.score - a.score).slice(0, 10)
+        // Sort stories by score in descending order
+        let topStories = stories.sort((a, b) => b.score - a.score);
 
         // Remove story ids that already exist in redis set 'ids'
         const existingIds : number[] = await redis.smembers('ids');
@@ -47,6 +47,9 @@ export async function loadStories(): Promise<Story[]> {
 
         // Filter out existing ids from top stories
         topStories = topStories.filter(story => !existingIds.includes(story.id));
+
+        // return top 3
+        topStories = topStories.slice(0, 3);
 
         console.log('Top stories:', topStories);
 
