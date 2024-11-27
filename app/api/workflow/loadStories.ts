@@ -46,7 +46,7 @@ export async function loadStories(): Promise<Story[]> {
         console.log('Existing ids:', existingIds);
 
         // Filter out existing ids from top stories
-        topStories = topStories.filter(story => !existingIds.includes(story.id));
+        topStories = topStories.filter(story => !existingIds.includes(story.id) && story.url);
 
         // return top 3
         topStories = topStories.slice(0, 3);
