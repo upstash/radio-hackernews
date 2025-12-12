@@ -19,7 +19,7 @@
     "fs": "^0.0.1-security",
     "jsdom": "^25.0.1",
     "natural": "^8.0.1",
-    "next": "14.2.11",
+    "next": "14.2.35",
     "node-fetch": "^2.7.0",
     "openai": "^4.62.1",
     "react": "^18",
